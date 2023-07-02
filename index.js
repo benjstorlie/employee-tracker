@@ -17,23 +17,14 @@ const connection = mysql.createConnection(
 main();
 
 function main() {
-  inquirer.prompt([
-    {
-      name: 'command',
-      type: 'list',
-      message: 'What would you like to do?',
-      choices: [
-        'View All Employees',
-        'Add Employee',
-        'Update Employee Role',
-        'View All Roles',
-        'Add Role',
-        'View All Departments',
-        'Add Department',
-        'Quit'
-      ]
-    }
-  ])
+
+  intro();
+}
+
+
+
+function intro() {
+  inquirer.prompt(questions.intro)
   .then((answers) => {
     switch (answers.command) {
       case 'Quit':
@@ -69,16 +60,7 @@ function main() {
 
 function viewAllEmployees() {
   connection.execute(
-    `SELECT
-      e.first_name,
-      e.last_name,
-      roles.role_name,
-      CONCAT(m.first_name, ' ', m.last_name) AS manager
-    FROM
-      employees AS e
-      LEFT JOIN roles ON e.role_id = roles.role_id
-      LEFT JOIN employees AS m ON e.manager_id = m.employee_id
-    `,
+    'SELECT * FROM full_employees_table',
     (err, results) => {
       if (err) {
         console.error(err);
@@ -147,8 +129,7 @@ function updateEmployeeRole() {
 
 function viewAllRoles() {
   connection.execute(
-    `SELECT r.role_name, r.salary, r.is_manager, d.department_name FROM roles AS r
-    LEFT JOIN departments AS d ON r.department_id = d.id`,
+    'SELECT * FROM full_roles_table',
     (err, results) => {
       if (err) {
         console.error(err);
@@ -161,7 +142,7 @@ function viewAllRoles() {
 
 function addRole() {
   connection.execute(
-    'SELECT department_name FROM departments', (err, results) => {
+    'SELECT * FROM full_departments_table', (err, results) => {
       const departments = results.map(row => row.department_name);
       
       inquirer.prompt([
@@ -246,4 +227,43 @@ function addDepartment() {
       }
     )
   })
+}
+
+function updateManagersList() {
+  connection.execute(
+    'SELECT * FROM managers',
+    (err, results) => {
+      if (err) {
+        console.error(err,'Could not update managers list');
+        return
+      }
+      questions.addEmployee[questions.addEmployee.findIndex((question) => question.name === 'employeeRole')].choices = results.map(m => `${m.Name}, ${m.Role}`)
+    }
+  )
+}
+
+function updateRolesList() {
+  connection.execute(
+    'SELECT role_name FROM roles',
+    (err, results) => {
+      if (err) {
+        console.error(err,'Could not update roles list');
+        return
+      }
+      console.table(results);
+    }
+  )
+}
+
+function updateDepartmentsList() {
+  connection.execute(
+    'SELECT department_name FROM departments',
+    (err, results) => {
+      if (err) {
+        console.error(err,'Could not update departments list');
+        return
+      }
+      console.table(results);
+    }
+  )
 }
