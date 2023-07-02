@@ -5,13 +5,13 @@ USE personnel_db;
 
 CREATE TABLE departments (
   id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-  department_name VARCHAR(30) NOT NULL,
+  department_name VARCHAR(255) NOT NULL,
   PRIMARY KEY (id)
 )
 
 CREATE TABLE roles (
   id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-  role_name VARCHAR(30) NOT NULL,
+  role_name VARCHAR(255) NOT NULL,
   salary DECIMAL,
   department_id INT,
   is_manager BOOLEAN,
@@ -23,8 +23,8 @@ CREATE TABLE roles (
 
 CREATE TABLE employees (
   id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-  first_name VARCHAR(30) NOT NULL,
-  last_name VARCHAR(30) NOT NULL, 
+  first_name VARCHAR(255) NOT NULL,
+  last_name VARCHAR(255) NOT NULL, 
   role_id INT,
   manager_id INT,
   entry_date DATE DEFAULT (CURRENT_DATE),
