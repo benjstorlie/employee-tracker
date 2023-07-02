@@ -25,19 +25,26 @@ INSERT INTO roles (role_name, salary, is_manager, department_id) VALUES
 
 -- Inserting employees
 INSERT INTO employees (first_name, last_name, role_id, manager_id, entry_date) VALUES
-  ('John', 'Smith', 4, NULL, '2022-01-15'),
-  ('Alice', 'Johnson', 5, 4, '2022-02-01'),
-  ('Bob', 'Williams', 1, 4, '2022-03-10'),
-  ('Charlie', 'Davis', 2, 5, '2022-04-03'),
-  ('Eva', 'Brown', 3, 4, '2022-05-22'),
-  ('Frank', 'Miller', 6, 5, '2022-06-08'),
-  ('Grace', 'Anderson', 2, 4, '2022-07-17'),
-  ('Henry', 'Taylor', 1, 5, '2022-08-04'),
-  ('Isabella', 'Moore', 6, 4, '2022-09-21'),
-  ('Jack', 'Clark', 3, 5, '2022-10-11'),
-  ('Kate', 'Lee', 2, 4, '2022-11-28'),
-  ('Liam', 'Wilson', 1, 5, '2022-12-09'),
-  ('Sarah', 'Jones', 7, 1, '2022-01-03'),
+
+INSERT INTO employees (first_name, last_name, role_id, manager_id, entry_date) VALUES
+
+INSERT INTO employees (first_name, last_name, role_id, manager_id, entry_date) VALUES
+
+INSERT INTO employees (first_name, last_name, role_id, manager_id, entry_date) VALUES
+
+  1('John', 'Smith', 4, NULL, '2022-01-15'),
+  2('Alice', 'Johnson', 5, 4, '2022-02-01'),
+  3('Bob', 'Williams', 1, 4, '2022-03-10'),
+  4('Charlie', 'Davis', 2, 5, '2022-04-03'),
+  5('Eva', 'Brown', 3, 4, '2022-05-22'),
+  6('Frank', 'Miller', 6, 5, '2022-06-08'),
+  7('Grace', 'Anderson', 2, 4, '2022-07-17'),
+  8('Henry', 'Taylor', 1, 5, '2022-08-04'),
+  9('Isabella', 'Moore', 6, 4, '2022-09-21'),
+  10('Jack', 'Clark', 3, 5, '2022-10-11'),
+  11('Kate', 'Lee', 2, 4, '2022-11-28'),
+  12('Liam', 'Wilson', 1, 5, '2022-12-09'),
+  13('Sarah', 'Jones', 7, 1, '2022-01-03'),
   ('Michael', 'Thompson', 7, 1, '2022-01-03'),
   ('Emma', 'Davis', 8, 2, '2022-01-03'),
   ('Olivia', 'Johnson', 8, 3, '2022-01-03'),
