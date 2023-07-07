@@ -5,7 +5,8 @@ USE personnel_db;
 
 CREATE TABLE departments (
   id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-  department_name VARCHAR(255) NOT NULL
+  department_name VARCHAR(255) NOT NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
 CREATE TABLE roles (
@@ -14,6 +15,7 @@ CREATE TABLE roles (
   salary DECIMAL,
   department_id INT,
   is_manager BOOLEAN,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (department_id)
   REFERENCES departments(id)
   ON DELETE SET NULL
@@ -26,6 +28,7 @@ CREATE TABLE employees (
   role_id INT,
   manager_id INT,
   entry_date DATE DEFAULT (CURRENT_DATE),
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (role_id)
   REFERENCES roles(id)
   ON DELETE SET NULL,
@@ -78,4 +81,41 @@ CREATE VIEW managers AS
     LEFT JOIN roles AS r ON r.id = e.role_id
   WHERE
     r.is_manager = true;
+
+CREATE VIEW last_employee_updated AS
+  SELECT
+    e.first_name AS "First Name",
+    e.last_name AS "Last Name",
+    r.role_name AS "Role",
+    CONCAT(m.first_name, ' ', m.last_name) AS Manager,
+    mr.role_name AS "Manager Role"
+  FROM
+    employees AS e
+    LEFT JOIN roles AS r ON e.role_id = r.id
+    LEFT JOIN employees AS m ON e.manager_id = m.id
+    LEFT JOIN roles AS mr ON m.role_id = mr.id
+  ORDER BY e.updated_at DESC, e.id DESC LIMIT 1;
+
+CREATE VIEW last_department_updated AS
+  SELECT
+    d.department_name AS "Department",
+    COUNT(e.role_id) AS "Number of Employees"
+  FROM
+    departments AS d
+    LEFT JOIN roles AS r ON r.department_id = d.id
+    LEFT JOIN employees AS e ON r.id = e.role_id
+  GROUP BY d.id
+  ORDER BY d.updated_at DESC, d.id DESC LIMIT 1;
     
+CREATE VIEW last_role_updated AS
+  SELECT
+    r.role_name AS "Role",
+    d.department_name AS "Department",
+    COUNT(e.role_id) AS "Number of Employees"
+  FROM
+    roles AS r
+    LEFT JOIN departments AS d ON r.department_id = d.id
+    LEFT JOIN employees AS e ON r.id = e.role_id
+  GROUP BY r.id
+  ORDER BY r.updated_at DESC, r.id DESC LIMIT 1;
+

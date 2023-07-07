@@ -1,7 +1,7 @@
 const mysql = require('mysql2');
 require('dotenv').config();
 const questions =require('./lib/questions');
-const { default: inquirer } = require('inquirer');
+const inquirer = require('inquirer');
 
 // create the connection to database
 const connection = mysql.createConnection(
@@ -14,222 +14,146 @@ const connection = mysql.createConnection(
   console.log(`Connected to the database.`)
 );
 
-main();
 
-function main() {
 
-  intro();
+async function init() {
+  update.roles();
+  update.departments();
+  update.managers();
+  
+  // setTimeout(() => {
+  //   const index = questions.addEmployee.findIndex(question => question.name === "manager_name");
+  //   if (index !== -1) {
+  //     console.log(questions.addEmployee[index].choices)
+  //   }
+  // }, 300)
+  // connection.end();
+
+  await main();
 }
 
-
-
-function intro() {
+async function main() {
   inquirer.prompt(questions.intro)
-  .then((answers) => {
-    switch (answers.command) {
-      case 'Quit':
-        console.log('Goodbye');
-        connection.end();
-        return;
-      case 'View All Employees':
-        viewAllDepartments();
-        break;
-      case 'Add Employee':
-        addEmployee();
-        break;
-      case 'Update Employee Role':
-        updateEmployeeRole();
-        break;
-      case 'View All Roles':
-        viewAllRoles();
-        break;
-      case 'Add Role':
-        addRole();
-        break;
-      case 'View All Departments':
-        viewAllDepartments;
-        break;
-      case 'Add Department':
-        addDepartment;
-        break;
-      default:
-        main();
+  .then(async (answers) => {
+    if (Object.keys(operations).includes(answers.command)) {
+      await operations[answers.command]();
+    } else {
+      console.log('Invalid command');
+      await main();
     }
   })
 }
 
-function viewAllEmployees() {
-  connection.execute(
-    'SELECT * FROM full_employees_table',
-    (err, results) => {
-      if (err) {
-        console.error(err);
-        return
+const operations = {
+    async viewAllEmployees() {
+    connection.execute(
+      'SELECT * FROM full_employees_table', async (err, results) => {
+        if (err) {
+          console.error(err);
+        } else {
+          table(results);
+        }
+        await main();
       }
-      console.table(results);
-    }
-  )
-}
+    )
+  },
 
-function addEmployee() {
-  connection.execute(
-    `SELECT e.first_name, e.last_name FROM employees as e
-    WHERE e.role_id IN (
-      SELECT role_id
-      FROM roles
-      WHERE is_manager = true
-    )`,
-    (err, results) => {
-      if (err) {
-        console.error(err);
-        return
-      }
-      const managers = results.map(row => `${row.first_name} ${row.last_name}`);
+  async quit() {
+    console.log('Goodbye');
+    connection.end();
+  },
+
+  async addEmployee() {
+    inquirer.prompt(questions.addEmployee)
+    .then(async (answers) => {
+      const role_id = await getId(answers,'role');
+      const manager_id = await getId(answers,'manager');
+
+      console.log(role_id,manager_id);
+
       connection.execute(
-        `SELECT role_name FROM roles`,(err, results) => {
+        'INSERT INTO employees (first_name, last_name, role_id, manager_id) VALUES (?,?,?,?)',[answers.first_name,answers.last_name,role_id,manager_id], async (err,results) => {
           if (err) {
             console.error(err);
-            return
+          } else {
+            update.managers();
+            console.log('New employee added!')
+            await showLast('employee');
+            await main();
           }
-          const roles = results.map(row => row.role_name);
-          inquirer.prompt([
-            {
-              name: 'firstName',
-              type: 'input',
-              message: 'What is the employee\'s first name?',
-            },
-            {
-              name: 'lastName',
-              type: 'input',
-              message: 'What is the employee\'s last name?',
-            },
-            {
-              name: 'employeeRole',
-              type: 'list',
-              message: 'What is the employee\'s role?',
-              choices: roles,
-            },
-            {
-              name: 'employeeManager',
-              type: 'list',
-              message: 'Who is the employee\'s manager?',
-              choices: managers.concat(['none']),
-            },
-          ])
         }
       )
-    }
-  );
+    })
+    
+  },
 
-}
+  async updateEmployeeRole() {
+    console.log('Command not yet available.')
+  },
 
-function updateEmployeeRole() {
-  console.log('Command not yet available.')
-}
-
-function viewAllRoles() {
-  connection.execute(
-    'SELECT * FROM full_roles_table',
-    (err, results) => {
-      if (err) {
-        console.error(err);
-        return
-      }
-      console.table(results);
-    }
-  )
-}
-
-function addRole() {
-  connection.execute(
-    'SELECT * FROM full_departments_table', (err, results) => {
-      const departments = results.map(row => row.department_name);
-      
-      inquirer.prompt([
-      {
-        name: 'role_name',
-        type: 'input',
-        message: 'What is the name of the role?',
-      },
-      {
-        name: 'salary',
-        type: 'input',
-        message: 'What is the salary of the role?'
-      },
-      {
-        name: 'is_manager',
-        type: 'confirm',
-        message: 'Is this a manager position?'
-      },
-      {
-        name: 'department_name',
-        type: 'list',
-        message: 'Which department does the role belong to?',
-        choices: departments
-      },
-      ])
-      .then((answers) => {
-          connection.execute('SELECT id FROM departments WHERE department_name = ?', [answers.department_name], (err, results) => {
-          if (err) {
-            console.error(err);
-            return
-          } else if (!results.length) {
-            console.error(`Error finding ${answers.department_name} in the table`);
-            return
-          }
-          const department_id = results[0].id;
-          connection.execute(
-            'INSERT INTO roles (role_name, salary, is_manager, department_id) VALUES (?,?,?,?)',[answers.role_name,answers.salary,answers.is_manager,department_id], (err,results) => {
-              if (err) {
-                console.error(err);
-                return
-              }
-              console.log('New role added!')
-              console.table(results);
-            }
-          )
-        })
-      })
-    }
-  )
-
-  
-}
-
-function viewAllDepartments() {
-  connection.execute(
-    'SELECT department_name FROM departments', (err, results) => {
-      if (err) {
-        console.error(err);
-        return
-      }
-      console.table(results);
-    }
-  )
-}
-
-function addDepartment() {
-  inquirer.prompt([
-    {
-      name: 'department_name',
-      type: 'input',
-      message: 'What is the name of the department?'
-    }
-  ])
-  .then((answers) => {
+  async viewAllRoles() {
     connection.execute(
-      'INSERT INTO departments (department_name) VALUES (?)', [answers.department_name], (err, results) => {
+      'SELECT * FROM full_roles_table',
+      (err, results) => {
         if (err) {
           console.error(err);
           return
         }
-        console.log(`New department added!`,results);
+        table(results);
       }
     )
-  })
+  },
+
+  async addRole() {
+    inquirer.prompt(questions.addRole)
+    .then(async (answers) => {
+      const department_id = await getId(answers,'department');
+      connection.execute(
+        'INSERT INTO roles (role_name, salary, is_manager, department_id) VALUES (?,?,?,?)',[answers.role_name,answers.salary,answers.is_manager,department_id], (err,results) => {
+          if (err) {
+            console.error(err);
+            return
+          }
+          update.roles();
+          console.log('New role added!')
+          showLast('role');
+        }
+      )
+    })
+  },
+
+  async viewAllDepartments() {
+    connection.execute(
+      'SELECT department_name FROM departments', (err, results) => {
+        if (err) {
+          console.error(err);
+          return
+        }
+        table(results);
+      }
+    )
+  },
+
+  async addDepartment() {
+    inquirer.prompt(questions.addDepartment)
+    .then((answers) => {
+      connection.execute(
+        'INSERT INTO departments (department_name) VALUES (?)', [answers.department_name], (err, results) => {
+          if (err) {
+            console.error(err);
+            return
+          }
+          update.departments();
+          console.log(`New department added!`);
+          showLast('department');
+        }
+      )
+    })
+  },
 }
 
-function updateManagersList() {
+const update = {
+  managers() {
   connection.execute(
     'SELECT * FROM managers',
     (err, results) => {
@@ -237,12 +161,13 @@ function updateManagersList() {
         console.error(err,'Could not update managers list');
         return
       }
-      questions.addEmployee[questions.addEmployee.findIndex((question) => question.name === 'employeeRole')].choices = results.map(m => `${m.Name}, ${m.Role}`)
+
+      questions.updatePrompt('addEmployee','manager_name',{choices: results.map(m => `${m.Name} 💼 ${m.Role}`).concat(['none'])})
     }
   )
-}
+},
 
-function updateRolesList() {
+roles() {
   connection.execute(
     'SELECT role_name FROM roles',
     (err, results) => {
@@ -250,12 +175,13 @@ function updateRolesList() {
         console.error(err,'Could not update roles list');
         return
       }
-      console.table(results);
+
+      questions.updatePrompt('addEmployee','role_name',{choices: results.map(row => row.role_name )})
     }
   )
-}
+},
 
-function updateDepartmentsList() {
+departments() {
   connection.execute(
     'SELECT department_name FROM departments',
     (err, results) => {
@@ -263,7 +189,57 @@ function updateDepartmentsList() {
         console.error(err,'Could not update departments list');
         return
       }
-      console.table(results);
+      
+      questions.updatePrompt('addRole','department_name',{choices: results.map(row => row.department_name )})
     }
   )
 }
+}
+
+async function getId(answers,item) {
+  if (!['manager','department','role'].includes(item)) {
+    console.error(`You can\'t get the ID for ${item}.`)
+    return null
+  } else if (answers[item+'_name'] === null) {
+    return null
+  } else {
+    const value = (item === "manager" ? "CONCAT(first_name,' ',last_name)" : item+'_name');
+    const table = (item === "manager" ? "employees" : item+'s');
+    connection.execute(`SELECT id FROM ${table} WHERE ${value} = ?`, [answers[item+'_name']], (err, results) => {
+      if (err) {
+        console.error(err);
+        return
+      } else if (!results.length) {
+        console.error(`Error finding ${item} in the table`);
+        return
+      } else {
+        return results[0].id;
+      }
+    });
+  }
+  
+}
+
+function table(data) {
+  console.log('\n');
+  console.table(data);
+  console.log('Use up or down arrow keys to execute a new command.')
+}
+
+async function showLast(item) {
+  if (['employee','role','department'].includes(item)) {
+    const viewName = `last_${item}_updated`;
+    connection.execute(`SELECT * FROM ${viewName}`,(err, results) => {
+      if (err) {
+        console.error(err);
+        return
+      }
+      table(results);
+    })
+  } else {
+    console.log(`Could not display last ${item} updated.`);
+        return
+  }
+}
+
+init();

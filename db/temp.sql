@@ -17,4 +17,3 @@ SOURCE db/seeds.sql;
 --   LEFT JOIN roles AS mr ON m.role_id = mr.id
 -- ORDER BY r.id, mr.id;
 
-SELECT * FROM managers;

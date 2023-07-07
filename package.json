@@ -4,12 +4,14 @@
   "description": "Content Management System for employees",
   "main": "index.js",
   "scripts": {
+    "start": "node index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Ben Storlie",
   "license": "MIT",
   "dependencies": {
     "inquirer": "^8.2.4",
-    "mysql2": "^2.2.5"
+    "mysql2": "^2.2.5",
+    "dotenv": "^8.2.0"
   }
 }
