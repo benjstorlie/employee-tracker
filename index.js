@@ -14,31 +14,31 @@ const connection = mysql.createConnection(
   console.log(`Connected to the database.`)
 );
 
-
+let start = true;
 
 async function init() {
-  update.roles();
-  update.departments();
-  update.managers();
-  
-  // setTimeout(() => {
-  //   const index = questions.addEmployee.findIndex(question => question.name === "manager_name");
-  //   if (index !== -1) {
-  //     console.log(questions.addEmployee[index].choices)
-  //   }
-  // }, 300)
-  // connection.end();
-
-  await main();
+  await main('all');
 }
 
-async function main() {
+async function main(updateList = []) {
+if (updateList.length){
+    if (updateList==='all') {updateList = Object.keys(update);}
+    for (const item of updateList) {
+      await update[item]();
+    }
+  }
+  if (!start) {
+    await confirmContinue();
+  } else {
+    start = false;
+  }
+
   inquirer.prompt(questions.intro)
   .then(async (answers) => {
     if (Object.keys(operations).includes(answers.command)) {
       await operations[answers.command]();
     } else {
-      console.log('Invalid command');
+      console.log('Invalid command',answers.command);
       await main();
     }
   })
@@ -51,9 +51,10 @@ const operations = {
         if (err) {
           console.error(err);
         } else {
-          table(results);
+          await table(results);
+          await main();
         }
-        await main();
+        
       }
     )
   },
@@ -73,10 +74,10 @@ const operations = {
           'INSERT INTO employees (first_name, last_name, role_id, manager_id) VALUES (?,?,?,?)',
           [first_name, last_name, role_id, manager_id]
         );
-        update.managers();
+        await update.managers();
         console.log('New employee added!');
         await showLast('employee');
-        await main();
+        await main({updateList:['employees']});
       } catch (err) {
         console.error(err);
       }
@@ -86,17 +87,19 @@ const operations = {
 
   async updateEmployeeRole() {
     console.log('Command not yet available.')
+    await main();
   },
 
   async viewAllRoles() {
     connection.execute(
       'SELECT * FROM full_roles_table',
-      (err, results) => {
+      async (err, results) => {
         if (err) {
           console.error(err);
           return
         }
-        table(results);
+        await table(results);
+        await main();
       }
     )
   },
@@ -106,14 +109,14 @@ const operations = {
     .then(async (answers) => {
       const department_id = await getId(answers,'department');
       connection.execute(
-        'INSERT INTO roles (role_name, salary, is_manager, department_id) VALUES (?,?,?,?)',[answers.role_name,answers.salary,answers.is_manager,department_id], (err,results) => {
+        'INSERT INTO roles (role_name, salary, is_manager, department_id) VALUES (?,?,?,?)',[answers.role_name,answers.salary,answers.is_manager,department_id], async (err,results) => {
           if (err) {
             console.error(err);
             return
           }
-          update.roles();
           console.log('New role added!')
           showLast('role');
+          await main({updateList:["roles"]});
         }
       )
     })
@@ -121,12 +124,13 @@ const operations = {
 
   async viewAllDepartments() {
     connection.execute(
-      'SELECT department_name FROM departments', (err, results) => {
+      'SELECT department_name FROM departments', async (err, results) => {
         if (err) {
           console.error(err);
           return
         }
-        table(results);
+        await table(results);
+        await main();
       }
     )
   },
@@ -135,12 +139,12 @@ const operations = {
     inquirer.prompt(questions.addDepartment)
     .then((answers) => {
       connection.execute(
-        'INSERT INTO departments (department_name) VALUES (?)', [answers.department_name], (err, results) => {
+        'INSERT INTO departments (department_name) VALUES (?)', [answers.department_name], async (err, results) => {
           if (err) {
             console.error(err);
             return
           }
-          update.departments();
+          await update.departments();
           console.log(`New department added!`);
           showLast('department');
         }
@@ -149,8 +153,20 @@ const operations = {
   },
 }
 
+async function confirmContinue() {
+  const cont = (await inquirer.prompt({
+    name: 'continue',
+    type: 'confirm',
+    prefix: '--->',
+    message: 'Press [enter] to continue...',
+  }));
+  if (!cont.continue) {
+    await confirmContinue();
+  }
+}
+
 const update = {
-  managers() {
+  async managers() {
   connection.execute(
     'SELECT * FROM managers',
     (err, results) => {
@@ -159,57 +175,56 @@ const update = {
         return
       }
 
-      questions.updatePrompt('addEmployee','manager_id',{choices: results.map(m => ({name: `${m.Name} 💼 ${m.Role}`, value: m.id})).concat([{name:'none',value:null}])})
+      questions.updatePrompt('addEmployee','manager_id',{choices:[questions.none.choices[0]].concat(results.map(m => ({name: `${m.Name} 💼 ${m.Role}`, value: m.id})))})
     }
   )
 },
 
-roles() {
-  connection.execute(
-    'SELECT id, role_name FROM roles',
-    (err, results) => {
-      if (err) {
-        console.error(err,'Could not update roles list');
-        return
+  async roles() {
+    connection.execute(
+      'SELECT id, role_name FROM roles',
+      (err, results) => {
+        if (err) {
+          console.error(err,'Could not update roles list');
+          return
+        }
+
+        questions.updatePrompt('addEmployee','role_id',{choices:[questions.none.choices[0]].concat(results.map(row => ({name: row.role_name, value: row.id }) ))})
       }
+    )
+  },
 
-      questions.updatePrompt('addEmployee','role_id',{choices: results.map(row => ({name: row.role_name, value: row.id }) ).concat([{name:'none',value:null}])})
-    }
-  )
-},
-
-departments() {
-  connection.execute(
-    'SELECT id, department_name FROM departments',
-    (err, results) => {
-      if (err) {
-        console.error(err,'Could not update departments list');
-        return
+  async departments() {
+    connection.execute(
+      'SELECT id, department_name FROM departments',
+      (err, results) => {
+        if (err) {
+          console.error(err,'Could not update departments list');
+          return
+        }
+        
+        questions.updatePrompt('addRole','department_name',{choices: results.map(row => ({name: row.department_name, value: row.id}) )})
       }
-      
-      questions.updatePrompt('addRole','department_name',{choices: results.map(row => ({name: row.department_name, value: row.id}) )})
-    }
-  )
-}
+    )
+  }
 }
 
 
 
-function table(data) {
+async function table(data) {
   console.log('\n');
   console.table(data);
-  console.log('Use up or down arrow keys to execute a new command.')
 }
 
 async function showLast(item) {
   if (['employee','role','department'].includes(item)) {
     const viewName = `last_${item}_updated`;
-    connection.execute(`SELECT * FROM ${viewName}`,(err, results) => {
+    connection.execute(`SELECT * FROM ${viewName}`, async (err, results) => {
       if (err) {
         console.error(err);
         return
       }
-      table(results);
+      await table(results);
     })
   } else {
     console.log(`Could not display last ${item} updated.`);

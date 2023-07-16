@@ -1,4 +1,29 @@
-# employee-tracker
+# Employee Tracker
+
+## Table of Contents
+
+1. [Description](#description)
+2. [Installation](#installation)
+3. [Comments](#comments)
+
+## Description
+
+## Installation
+
+1. Download a copy of the repository.
+2. In the command line, navigate to the repo and run `npm install`.
+3. Make sure you have [MySQL](https://www.mysql.com/) installed and set up.  See [this installation guide](https://coding-boot-camp.github.io/full-stack/mysql/mysql-installation-guide) for any help.
+4. Log into your MySQL Shell, and run `source db/schema.sql`.
+5. For some sample data to start, run `source db/seeds.sql`.
+6. Then exit the shell.
+7. In the repo folder, create a file called .env containing the following. Replace "root" and "localhost" with your username and host if needed, and insert your own password.
+```
+DB_DATABASE='personnel_db'
+DB_PASSWORD=''
+DB_USER='root'
+DB_HOST='localhost'
+```
+8. Now you can run `npm start` to get started!
 
 ## Comments
 
