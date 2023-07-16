@@ -74,6 +74,7 @@ CREATE VIEW full_departments_table AS
 
 CREATE VIEW managers AS
   SELECT
+    e.id as id,
     CONCAT(e.first_name, ' ', e.last_name) AS Name,
     r.role_name AS Role
   FROM

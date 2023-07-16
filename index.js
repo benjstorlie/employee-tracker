@@ -66,23 +66,20 @@ const operations = {
   async addEmployee() {
     inquirer.prompt(questions.addEmployee)
     .then(async (answers) => {
-      const role_id = await getId(answers,'role');
-      const manager_id = await getId(answers,'manager');
+      try {
+        const {first_name, last_name, role_id, manager_id} = answers;
 
-      console.log(role_id,manager_id);
-
-      connection.execute(
-        'INSERT INTO employees (first_name, last_name, role_id, manager_id) VALUES (?,?,?,?)',[answers.first_name,answers.last_name,role_id,manager_id], async (err,results) => {
-          if (err) {
-            console.error(err);
-          } else {
-            update.managers();
-            console.log('New employee added!')
-            await showLast('employee');
-            await main();
-          }
-        }
-      )
+        const results = await connection.execute(
+          'INSERT INTO employees (first_name, last_name, role_id, manager_id) VALUES (?,?,?,?)',
+          [first_name, last_name, role_id, manager_id]
+        );
+        update.managers();
+        console.log('New employee added!');
+        await showLast('employee');
+        await main();
+      } catch (err) {
+        console.error(err);
+      }
     })
     
   },
@@ -162,63 +159,41 @@ const update = {
         return
       }
 
-      questions.updatePrompt('addEmployee','manager_name',{choices: results.map(m => `${m.Name} 💼 ${m.Role}`).concat(['none'])})
+      questions.updatePrompt('addEmployee','manager_id',{choices: results.map(m => ({name: `${m.Name} 💼 ${m.Role}`, value: m.id})).concat([{name:'none',value:null}])})
     }
   )
 },
 
 roles() {
   connection.execute(
-    'SELECT role_name FROM roles',
+    'SELECT id, role_name FROM roles',
     (err, results) => {
       if (err) {
         console.error(err,'Could not update roles list');
         return
       }
 
-      questions.updatePrompt('addEmployee','role_name',{choices: results.map(row => row.role_name )})
+      questions.updatePrompt('addEmployee','role_id',{choices: results.map(row => ({name: row.role_name, value: row.id }) ).concat([{name:'none',value:null}])})
     }
   )
 },
 
 departments() {
   connection.execute(
-    'SELECT department_name FROM departments',
+    'SELECT id, department_name FROM departments',
     (err, results) => {
       if (err) {
         console.error(err,'Could not update departments list');
         return
       }
       
-      questions.updatePrompt('addRole','department_name',{choices: results.map(row => row.department_name )})
+      questions.updatePrompt('addRole','department_name',{choices: results.map(row => ({name: row.department_name, value: row.id}) )})
     }
   )
 }
 }
 
-async function getId(answers,item) {
-  if (!['manager','department','role'].includes(item)) {
-    console.error(`You can\'t get the ID for ${item}.`)
-    return null
-  } else if (answers[item+'_name'] === null) {
-    return null
-  } else {
-    const value = (item === "manager" ? "CONCAT(first_name,' ',last_name)" : item+'_name');
-    const table = (item === "manager" ? "employees" : item+'s');
-    connection.execute(`SELECT id FROM ${table} WHERE ${value} = ?`, [answers[item+'_name']], (err, results) => {
-      if (err) {
-        console.error(err);
-        return
-      } else if (!results.length) {
-        console.error(`Error finding ${item} in the table`);
-        return
-      } else {
-        return results[0].id;
-      }
-    });
-  }
-  
-}
+
 
 function table(data) {
   console.log('\n');
