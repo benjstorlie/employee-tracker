@@ -27,4 +27,5 @@ DB_HOST='localhost'
 
 ## Comments
 
-1. I would really like, when creating a new employee for example, to have the ability start adding a new role if the employee's role wasn't in the database already.  I decided to try to focus on a Minimum Viable Product, however, 
+1. I would really like, when creating a new employee for example, to have the ability start adding a new role if the employee's role wasn't in the database already.  I decided to try to focus on a Minimum Viable Product, however.
+2. The biggest hang up with this project was handling asynchronous functions, and how things display in the console.  When I had `await main()` *after* an operation, the intro question and the table shown from the operation will be in the same position.  First, the table would cover up the question, and then if I used the up/down arrow keys, then the intro question would cover up the table.  But when I found each ending point in each operation -- including all the different if/then cases -- then the new question actually appeared below the table.
