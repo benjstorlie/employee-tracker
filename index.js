@@ -46,11 +46,12 @@ if (updateList.length){
 }
 
 const operations = {
-    async viewAllEmployees() {
+  async viewAllEmployees() {
     connection.execute(
       'SELECT * FROM full_employees_table', async (err, results) => {
         if (err) {
           console.error(err);
+          await main();
         } else {
           await table(results);
           await main();
@@ -81,14 +82,28 @@ const operations = {
         await main('employees');
       } catch (err) {
         console.error(err);
+        await main();
       }
     })
     
   },
 
   async updateEmployeeRole() {
-    console.log('Command not yet available.')
-    await main();
+    inquirer.prompt(questions.updateEmployeeRole)
+    .then(async (answers) => {
+      const {role_id,employee_id} = answers;
+      connection.execute(
+        'UPDATE employees SET role_id = ? WHERE id = ?',[role_id,employee_id], async (err,results) => {
+          if (err) {
+            console.error(err);
+            await main();
+          }
+          console.log('Employee role updated!!')
+          showLast('employee');
+          await main('employees');
+        }
+      )
+    })
   },
 
   async viewAllRoles() {
@@ -97,7 +112,7 @@ const operations = {
       async (err, results) => {
         if (err) {
           console.error(err);
-          return
+          await main();
         }
         await table(results);
         await main();
@@ -108,12 +123,12 @@ const operations = {
   async addRole() {
     inquirer.prompt(questions.addRole)
     .then(async (answers) => {
-      const department_id = await getId(answers,'department');
+      const {role_name,salary,is_manager,department_id} = answers;
       connection.execute(
-        'INSERT INTO roles (role_name, salary, is_manager, department_id) VALUES (?,?,?,?)',[answers.role_name,answers.salary,answers.is_manager,department_id], async (err,results) => {
+        'INSERT INTO roles (role_name, salary, is_manager, department_id) VALUES (?,?,?,?)',[role_name,salary,is_manager,department_id], async (err,results) => {
           if (err) {
             console.error(err);
-            return
+            await main();
           }
           console.log('New role added!')
           showLast('role');
@@ -125,10 +140,10 @@ const operations = {
 
   async viewAllDepartments() {
     connection.execute(
-      'SELECT department_name FROM departments', async (err, results) => {
+      'SELECT * FROM full_departments_table', async (err, results) => {
         if (err) {
           console.error(err);
-          return
+          await main();
         }
         await table(results);
         await main();
@@ -143,11 +158,12 @@ const operations = {
         'INSERT INTO departments (department_name) VALUES (?)', [answers.department_name], async (err, results) => {
           if (err) {
             console.error(err);
-            return
+            await main();
           }
           await update.departments();
           console.log(`New department added!`);
           showLast('department');
+          await main();
         }
       )
     })
@@ -155,12 +171,7 @@ const operations = {
 }
 
 async function confirmContinue() {
-  const cont = (await inquirer.prompt({
-    name: 'continue',
-    type: 'confirm',
-    prefix: '--->',
-    message: 'Press [enter] to continue...',
-  }));
+  const cont = (await inquirer.prompt(questions.restart));
   if (!cont.continue) {
     await confirmContinue();
   }
@@ -168,18 +179,29 @@ async function confirmContinue() {
 
 const update = {
   async managers() {
-  connection.execute(
-    'SELECT * FROM managers',
-    (err, results) => {
-      if (err) {
-        console.error(err,'Could not update managers list');
-        return
+    connection.execute(
+      'SELECT * FROM managers',
+      (err, results) => {
+        if (err) {
+          console.error(err,'Could not update managers list');
+          return
+        }
+        questions.updatePrompt('addEmployee','manager_id',{choices:[questions.none.choices[0]].concat(results.map(m => ({name: `${m.Name} 💼 ${m.Role}`, value: m.id})))})
       }
-
-      questions.updatePrompt('addEmployee','manager_id',{choices:[questions.none.choices[0]].concat(results.map(m => ({name: `${m.Name} 💼 ${m.Role}`, value: m.id})))})
-    }
-  )
-},
+    )
+  },
+  async employees() {
+    connection.execute(
+      'SELECT * FROM employees ORDER BY entry_date DESC',
+      (err, results) => {
+        if (err) {
+          console.error(err,'Could not update employees list');
+          return
+        }
+        questions.updatePrompt('updateEmployeeRole','employee_id',{choices:results.map(e => ({name: `${e.first_name} ${e.last_name} 🗓️  ${e.entry_date.toLocaleDateString()}`, value: e.id}))})
+      }
+    )
+  },
 
   async roles() {
     connection.execute(
@@ -190,7 +212,8 @@ const update = {
           return
         }
 
-        questions.updatePrompt('addEmployee','role_id',{choices:[questions.none.choices[0]].concat(results.map(row => ({name: row.role_name, value: row.id }) ))})
+        questions.updatePrompt('addEmployee','role_id',{choices:[questions.none.choices[0]].concat(results.map(row => ({name: row.role_name, value: row.id }) ))});
+        questions.updatePrompt('updateEmployeeRole','role_id',{choices:[questions.none.choices[0]].concat(results.map(row => ({name: row.role_name, value: row.id }) ))})
       }
     )
   },
@@ -204,7 +227,8 @@ const update = {
           return
         }
         
-        questions.updatePrompt('addRole','department_name',{choices: results.map(row => ({name: row.department_name, value: row.id}) )})
+        questions.updatePrompt('addRole','department_id',{choices: results.map(row => ({name: row.department_name, value: row.id}) )});
+        questions.updatePrompt('updateEmployeeRole','department_id',{choices: results.map(row => ({name: row.department_name, value: row.id}) )})
       }
     )
   }
@@ -214,7 +238,19 @@ const update = {
 
 async function table(data) {
   console.log('\n');
-  console.table(data);
+  const columns = Object.keys(data[0]);
+  const col0 = columns.shift();
+  const tableData = {};
+  data.forEach(row => {
+    tableData[row[col0]] = {};
+    columns.forEach(col => {
+      const value = row[col];
+      if (value) {
+        tableData[row[col0]][col] = (value instanceof Date ? value.toLocaleDateString() : value )
+      }
+    });
+  });
+  console.table(tableData);
 }
 
 async function showLast(item) {

@@ -39,9 +39,11 @@ CREATE TABLE employees (
 
 CREATE VIEW full_employees_table AS
   SELECT
+    e.id AS id,
     e.first_name AS "First Name",
     e.last_name AS "Last Name",
     r.role_name AS "Role",
+    e.entry_date AS "Entry Date",
     CONCAT(m.first_name, ' ', m.last_name) AS Manager,
     mr.role_name AS "Manager Role"
   FROM
@@ -53,6 +55,7 @@ CREATE VIEW full_employees_table AS
 
 CREATE VIEW full_roles_table AS
   SELECT
+    r.id AS id,
     r.role_name AS "Role",
     d.department_name AS "Department",
     COUNT(e.role_id) AS "Number of Employees"
@@ -64,13 +67,14 @@ CREATE VIEW full_roles_table AS
 
 CREATE VIEW full_departments_table AS
   SELECT
+    d.id AS id,
     d.department_name AS "Department",
     COUNT(e.role_id) AS "Number of Employees"
   FROM
     departments AS d
     LEFT JOIN roles AS r ON r.department_id = d.id
     LEFT JOIN employees AS e ON r.id = e.role_id
-  GROUP BY d.department_name;
+  GROUP BY d.id;
 
 CREATE VIEW managers AS
   SELECT
@@ -85,6 +89,7 @@ CREATE VIEW managers AS
 
 CREATE VIEW last_employee_updated AS
   SELECT
+    e.id AS id,
     e.first_name AS "First Name",
     e.last_name AS "Last Name",
     r.role_name AS "Role",
@@ -99,6 +104,7 @@ CREATE VIEW last_employee_updated AS
 
 CREATE VIEW last_department_updated AS
   SELECT
+    d.id AS id,
     d.department_name AS "Department",
     COUNT(e.role_id) AS "Number of Employees"
   FROM
@@ -110,6 +116,7 @@ CREATE VIEW last_department_updated AS
     
 CREATE VIEW last_role_updated AS
   SELECT
+    r.id AS id,
     r.role_name AS "Role",
     d.department_name AS "Department",
     COUNT(e.role_id) AS "Number of Employees"
