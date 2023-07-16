@@ -16,13 +16,14 @@ const connection = mysql.createConnection(
 
 let start = true;
 
+// init() is executed all the way at the bottom, so that anything needed is first declared.
 async function init() {
   await main('all');
 }
 
-async function main(updateList = []) {
+async function main(...updateList) {
 if (updateList.length){
-    if (updateList==='all') {updateList = Object.keys(update);}
+    if (updateList[0]==='all') {updateList = Object.keys(update);}
     for (const item of updateList) {
       await update[item]();
     }
@@ -77,7 +78,7 @@ const operations = {
         await update.managers();
         console.log('New employee added!');
         await showLast('employee');
-        await main({updateList:['employees']});
+        await main('employees');
       } catch (err) {
         console.error(err);
       }
@@ -116,7 +117,7 @@ const operations = {
           }
           console.log('New role added!')
           showLast('role');
-          await main({updateList:["roles"]});
+          await main('roles');
         }
       )
     })
