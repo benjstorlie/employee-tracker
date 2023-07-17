@@ -11,13 +11,13 @@ const connection = mysql.createConnection(
     password: process.env.DB_PASSWORD,
     database: process.env.DB_DATABASE
   },
-  console.log(`Connected to the database.`)
 );
 
 let start = true;
 
 // init() is executed all the way at the bottom, so that anything needed is first declared.
 async function init() {
+  console.log("Welcome to the Employee Tracker!");
   await main('all');
 }
 
